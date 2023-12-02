@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+//  * Falta criar os controller e services das tabelas:
+//  *  Cart = não presico criar, pois um usuário não pode deletar seu carrinho, por ser unico
+//  *  Order = Caso n existir, criar e adicionar o produto. Caso existir uma order, adicionar o produto ao pedido
+//  *  OrdersHasProducts = tabela intermediaria para relacionar o produto sua order e a quantidade de pedidos
+model Employee {
+  id        String   @id @default(cuid()) @map("_id")
+  name      String
+  birthday  DateTime
+  cpf       String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("EMPLOYEE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("employees")
+}
+
+model Client {
+  id       String   @id @default(cuid()) @map("_id")
+  name     String
+  avatar   String?
+  birthday DateTime
+  cpf      String   @unique
+  email    String   @unique
+  password String
+  role     String?  @default("CLIENT")
+
+  cart             Cart?
+  productFavorites Favorite[]
+  messages         Message[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("clients")
+}
+
+model Category {
+  id        String   @id @default(cuid()) @map("_id")
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updateAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id                String   @id @default(cuid()) @map("_id")
+  imageUrl          String
+  name              String
+  price             Float
+  description       String
+  amount            Int
+  categoryId        String   @map("category_id")
+  barCode           String   @unique @map("bar_code")
+  manufacturingDate DateTime @map("manufacturing_date")
+  expirationDate    DateTime @map("expirion_date")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  ordersHasProducts OrdersHasProducts[]
+
+  users Favorite[]
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@map("products")
+}
+
+model Favorite {
+  id        String @id @default(cuid()) @map("_id")
+  clientId  String @map("client_id")
+  productId String @map("product_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id])
+}
+
+model Cart {
+  id       String @id @default(cuid()) @map("_id")
+  clientId String @unique @map("client_id")
+
+  orders Order[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@map("carts")
+}
+
+model Order {
+  id         String  @id @default(cuid()) @map("_id")
+  cartId     String  @map("cart_id")
+  finalized  Boolean @default(false)
+  valueTotal Float   @default(0.0)
+
+  products OrdersHasProducts[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  cart Cart @relation(fields: [cartId], references: [id])
+
+  @@map("orders")
+}
+
+model OrdersHasProducts {
+  id        String @id @default(cuid()) @map("_id")
+  amount    Int    @default(1)
+  orderId   String @map("order_id")
+  productId String @map("product_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+
+  @@map("orders_has_prodcuts")
+}
+
+model Message {
+  id        String   @id @default(cuid()) @map("_id")
+  clientId  String   @map("client_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@map("messages")
+}
